@@ -3,7 +3,7 @@
 Real-time, endless soundscape generation from text prompts on Apple Silicon.
 Converts TangoFlux's FluxTransformer2DModel to CoreML for ANE/GPU acceleration, achieving **RTF 0.28x** (3.6x faster than real-time).
 
-> Part of *計算機の自然 (Computational Nature)* — an installation exploring the boundary between computational and natural sound environments.
+> Part of *計算機の自然 (Digital Nature)* — an installation exploring the boundary between computational and natural sound environments.
 
 **Paper:** [TangoFlux Endless: Real-time Text-to-Audio Generation on Apple Silicon via CoreML-accelerated Flow Matching](paper/main.pdf) (9 pages, 30 references)
 
