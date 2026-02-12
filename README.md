@@ -1,18 +1,20 @@
 # TangoFlux Endless: Real-time Audio Generation on Apple Silicon
 
 Real-time, endless soundscape generation from text prompts on Apple Silicon.
-Converts TangoFlux's FluxTransformer2DModel to CoreML for ANE/GPU acceleration, achieving **RTF 0.29x** (3.4x faster than real-time).
+Converts TangoFlux's FluxTransformer2DModel to CoreML for ANE/GPU acceleration, achieving **RTF 0.28x** (3.6x faster than real-time).
 
 > Part of *計算機の自然 (Computational Nature)* — an installation exploring the boundary between computational and natural sound environments.
+
+**Paper:** [TangoFlux Endless: Real-time Text-to-Audio Generation on Apple Silicon via CoreML-accelerated Flow Matching](paper/main.pdf) (9 pages, 30 references)
 
 ## Key Results
 
 | Backend | 25 steps / 18s audio | RTF | Speedup |
 |---------|---------------------|-----|---------|
-| MPS (float32) | 8.6s | 0.48x | baseline |
-| **CoreML (ANE/GPU)** | **5.2s** | **0.29x** | **1.65x** |
+| MPS (float32) | 8.05s ± 0.27s | 0.447x | baseline |
+| **CoreML (ANE/GPU)** | **5.06s ± 0.40s** | **0.281x** | **1.59x** |
 
-> RTF (Real-Time Factor) = generation time / audio duration. Below 1.0 means faster than real-time.
+> RTF (Real-Time Factor) = generation time / audio duration. Below 1.0 means faster than real-time. Measured on M2 Ultra, 10 runs, 2 warmup discarded.
 
 ## Architecture
 
@@ -170,7 +172,7 @@ python src/convert_coreml.py
 python src/endless_play.py
 ```
 
-**Without CoreML:** The system works without CoreML conversion (auto-fallback to MPS), but generation will be ~1.65x slower.
+**Without CoreML:** The system works without CoreML conversion (auto-fallback to MPS), but generation will be ~1.59x slower.
 
 ## Files
 
@@ -180,6 +182,10 @@ TangoFlux-Endless/
 ├── TECHNICAL_REPORT.md                # Detailed technical analysis
 ├── LICENSE                            # MIT
 ├── requirements.txt
+├── paper/
+│   ├── main.tex                      # arXiv paper (LaTeX source)
+│   ├── main.pdf                      # arXiv paper (compiled PDF)
+│   └── references.bib                # BibTeX references (30 entries)
 ├── src/
 │   ├── endless_play.py                # PyQt6 GUI + N-layer crossfade player
 │   ├── generator_worker.py            # Subprocess worker (CoreML/MPS)
@@ -189,7 +195,9 @@ TangoFlux-Endless/
 │   ├── transformer_flux.patch         # RoPE refactoring for CoreML
 │   └── attention_processor.patch      # apply_rope() refactoring
 └── benchmarks/
-    ├── optimize_bench.py              # Comprehensive MPS optimization analysis
+    ├── paper_benchmark.py             # Comprehensive benchmark suite
+    ├── results/                       # Benchmark results (JSON)
+    ├── optimize_bench.py              # MPS optimization analysis
     └── benchmark.py                   # Basic MPS vs CPU comparison
 ```
 
@@ -197,7 +205,7 @@ TangoFlux-Endless/
 
 | Optimization | Result | Status |
 |-------------|--------|--------|
-| CoreML transformer (ANE/GPU) | 1.65x speedup | **Deployed** |
+| CoreML transformer (ANE/GPU) | 1.59x speedup | **Deployed** |
 | Steps 50 → 25 | 2.0x speedup | **Deployed** |
 | subprocess isolation | GIL-free playback | **Deployed** |
 | N-layer staggered start | Seamless transitions | **Deployed** |
@@ -230,7 +238,7 @@ TangoFlux-Endless/
 ```bibtex
 @misc{ochiai2026tangoflux_endless,
   author = {Ochiai, Yoichi},
-  title = {TangoFlux Endless: Real-time Audio Generation on Apple Silicon via CoreML},
+  title = {TangoFlux Endless: Real-time Text-to-Audio Generation on Apple Silicon via CoreML-accelerated Flow Matching},
   year = {2026},
   publisher = {GitHub},
   url = {https://github.com/ochyai/TangoFlux-Endless}
