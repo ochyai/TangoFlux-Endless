@@ -1,0 +1,24 @@
+--- a/models/attention_processor.py
++++ b/models/attention_processor.py
+@@ -1698,12 +1698,17 @@
+
+-def apply_rope(xq, xk, freqs_cis):
+-    xq_ = xq.float().reshape(*xq.shape[:-1], -1, 1, 2)
+-    xk_ = xk.float().reshape(*xk.shape[:-1], -1, 1, 2)
+-    xq_out = freqs_cis[..., 0] * xq_[..., 0] + freqs_cis[..., 1] * xq_[..., 1]
+-    xk_out = freqs_cis[..., 0] * xk_[..., 0] + freqs_cis[..., 1] * xk_[..., 1]
+-    return xq_out.flatten(3).type_as(xq), xk_out.flatten(3).type_as(xk)
++# RoPE application: separated (cos, sin) rotation for CoreML compatibility (rank <= 5)
++def apply_rope(xq, xk, freqs_cis):
++    cos_emb, sin_emb = freqs_cis  # each: (batch, 1, seq, dim//2)
++    # (batch, heads, seq, head_dim) -> (batch, heads, seq, head_dim//2, 2)
++    xq_ = xq.float().reshape(*xq.shape[:-1], -1, 2)
++    xk_ = xk.float().reshape(*xk.shape[:-1], -1, 2)
++    xq_r, xq_i = xq_[..., 0], xq_[..., 1]
++    xk_r, xk_i = xk_[..., 0], xk_[..., 1]
++    # rotation: (cos*r - sin*i, sin*r + cos*i)
++    xq_out = torch.stack([cos_emb * xq_r - sin_emb * xq_i,
++                          sin_emb * xq_r + cos_emb * xq_i], dim=-1).flatten(-2)
++    xk_out = torch.stack([cos_emb * xk_r - sin_emb * xk_i,
++                          sin_emb * xk_r + cos_emb * xk_i], dim=-1).flatten(-2)
++    return xq_out.type_as(xq), xk_out.type_as(xk)

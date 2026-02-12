@@ -1,0 +1,47 @@
+--- a/models/transformers/transformer_flux.py
++++ b/models/transformers/transformer_flux.py
+@@ -35,22 +35,28 @@
+ logger = logging.get_logger(__name__)  # pylint: disable=invalid-name
+
+
+-def rope(pos: torch.Tensor, dim: int, theta: int) -> torch.Tensor:
++# RoPE: separated (cos, sin) representation for CoreML compatibility (rank <= 5)
++def rope(pos: torch.Tensor, dim: int, theta: int):
+     assert dim % 2 == 0, "The dimension must be even."
+-    scale = torch.arange(0, dim, 2, dtype=torch.float64, device=pos.device) / dim
++    _dtype = torch.float32 if pos.device.type == "mps" else torch.float64
++    scale = torch.arange(0, dim, 2, dtype=_dtype, device=pos.device) / dim
+     omega = 1.0 / (theta**scale)
+-    out = torch.einsum("...n,d->...nd", pos, omega)
+-    out = torch.stack([torch.cos(out), -torch.sin(out), torch.sin(out), torch.cos(out)], dim=-1)
+-    out = rearrange(out, "b n d (i j) -> b n d i j", i=2, j=2)
+-    return out.float()
++    out = pos.unsqueeze(-1) * omega.unsqueeze(0).unsqueeze(0)
++    return torch.cos(out).float(), torch.sin(out).float()  # each: (batch, seq, dim//2)
+
+
+ class EmbedND(nn.Module):
+     def __init__(self, dim: int, theta: int, axes_dim: List[int]):
+         super().__init__()
+         self.dim = dim
+         self.theta = theta
+         self.axes_dim = axes_dim
+
+-    def forward(self, ids: torch.Tensor) -> torch.Tensor:
++    def forward(self, ids: torch.Tensor):
+         n_axes = ids.shape[-1]
+-        emb = torch.cat(
+-            [rope(ids[..., i], self.axes_dim[i], self.theta) for i in range(n_axes)],
+-            dim=-3,
+-        )
+-
+-        return emb.unsqueeze(1)
++        cos_parts, sin_parts = [], []
++        for i in range(n_axes):
++            c, s = rope(ids[..., i], self.axes_dim[i], self.theta)
++            cos_parts.append(c)
++            sin_parts.append(s)
++        # (batch, 1, seq, total_dim//2) — rank 4
++        cos_emb = torch.cat(cos_parts, dim=-1).unsqueeze(1)
++        sin_emb = torch.cat(sin_parts, dim=-1).unsqueeze(1)
++        return (cos_emb, sin_emb)
